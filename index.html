@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basta Express V2</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #2c3e50;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            text-align: center;
+            user-select: none; /* Evita seleccionar texto al tocar rápido */
+        }
+
+        /* --- Header y Puntos --- */
+        .header {
+            width: 90%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .puntos-box {
+            background: rgba(0,0,0,0.2);
+            padding: 10px 20px;
+            border-radius: 10px;
+        }
+
+        .btn-small {
+            background: #e74c3c;
+            border: none;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 0 5px;
+        }
+
+        /* --- Categoría --- */
+        #categoria-container {
+            background-color: #f39c12;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            width: 85%;
+            max-width: 500px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #categoria-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; opacity: 0.9; }
+        #categoria-actual { font-size: 1.8rem; font-weight: bold; display: block; margin-top: 5px; line-height: 1.1;}
+
+        /* --- Temporizador --- */
+        #timer-bar-container {
+            width: 100%;
+            height: 10px;
+            background-color: rgba(255,255,255,0.2);
+            position: absolute;
+            bottom: 0;
+            left: 0;
+        }
+        #timer-bar {
+            height: 100%;
+            width: 100%;
+            background-color: #2ecc71;
+            transition: width 1s linear, background-color 1s;
+        }
+
+        /* --- Cartas --- */
+        .letras-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 30px;
+            max-width: 600px;
+        }
+
+        .carta {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            width: 65px;
+            height: 85px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #bdc3c7;
+            position: relative;
+        }
+        
+        .carta:active { transform: translateY(4px); box-shadow: 0 1px 0 #bdc3c7; }
+
+        /* --- Botón Principal --- */
+        button.btn-main {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.3rem;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            font-weight: bold;
+        }
+        button.btn-main:hover { background-color: #2980b9; }
+
+        /* Animación de alerta */
+        @keyframes parpadeo { 0% {opacity: 1;} 50% {opacity: 0.5;} 100% {opacity: 1;} }
+        .urgente { animation: parpadeo 0.5s infinite; background-color: #e74c3c !important; }
+
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="puntos-box">
+            <small>JUGADOR 1</small><br>
+            <button class="btn-small" onclick="cambiarPuntaje('p1', -1)">-</button>
+            <span id="score-p1" style="font-size:1.2rem; font-weight:bold;">0</span>
+            <button class="btn-small" style="background:#2ecc71" onclick="cambiarPuntaje('p1', 1)">+</button>
+        </div>
+        <div class="puntos-box">
+            <small>JUGADOR 2</small><br>
+            <button class="btn-small" onclick="cambiarPuntaje('p2', -1)">-</button>
+            <span id="score-p2" style="font-size:1.2rem; font-weight:bold;">0</span>
+            <button class="btn-small" style="background:#2ecc71" onclick="cambiarPuntaje('p2', 1)">+</button>
+        </div>
+    </div>
+
+    <div id="categoria-container">
+        <span id="categoria-label">Categoría</span>
+        <span id="categoria-actual">Presiona Jugar</span>
+        <div id="timer-bar-container"><div id="timer-bar"></div></div>
+    </div>
+
+    <div class="letras-container">
+        <div class="carta" onclick="cambiarLetra(this)">?</div>
+        <div class="carta" onclick="cambiarLetra(this)">?</div>
+        <div class="carta" onclick="cambiarLetra(this)">?</div>
+        <div class="carta" onclick="cambiarLetra(this)">?</div>
+        <div class="carta" onclick="cambiarLetra(this)">?</div>
+    </div>
+
+    <button class="btn-main" onclick="nuevaRonda()">¡JUGAR RONDA!</button>
+
+    <script>
+        // DATOS
+        const alfabeto = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ";
+        const categorias = [
+            "Animales", "Países", "Comidas", "Marcas", "Nombres", 
+            "Cosas de Baño", "Deportes", "Películas", "Frutas", 
+            "Profesiones", "Partes del cuerpo", "Objetos redondos", 
+            "Cosas frías", "Colores", "Videojuegos", "Famosos",
+            "Cosas que vuelan", "Ingredientes de Pizza", "Insultos"
+        ];
+
+        // VARIABLES DE ESTADO
+        let tiempoTotal = 60; 
+        let tiempoRestante = 60;
+        let intervalo;
+        let p1 = 0; 
+        let p2 = 0;
+
+        // FUNCIONES
+        function getLetraRandom() {
+            return alfabeto[Math.floor(Math.random() * alfabeto.length)];
+        }
+
+        function cambiarLetra(elemento) {
+            // Animación y cambio
+            elemento.style.transform = "scale(0.8)";
+            setTimeout(() => {
+                elemento.innerText = getLetraRandom();
+                elemento.style.transform = "scale(1)";
+            }, 100);
+        }
+
+        function cambiarPuntaje(jugador, delta) {
+            if(jugador === 'p1') {
+                p1 += delta;
+                document.getElementById('score-p1').innerText = p1;
+            } else {
+                p2 += delta;
+                document.getElementById('score-p2').innerText = p2;
+            }
+        }
+
+        function iniciarTimer() {
+            clearInterval(intervalo);
+            tiempoRestante = tiempoTotal;
+            const barra = document.getElementById('timer-bar');
+            barra.classList.remove('urgente');
+            
+            intervalo = setInterval(() => {
+                tiempoRestante--;
+                
+                // Calcular porcentaje de ancho
+                let porcentaje = (tiempoRestante / tiempoTotal) * 100;
+                barra.style.width = porcentaje + "%";
+
+                // Cambiar color a rojo si falta poco
+                if(tiempoRestante < 20) {
+                    barra.style.backgroundColor = "#e74c3c";
+                } else {
+                    barra.style.backgroundColor = "#2ecc71";
+                }
+
+                // Alerta visual últimos 5 segundos
+                if(tiempoRestante < 6) {
+                    barra.classList.add('urgente');
+                }
+
+                if(tiempoRestante <= 0) {
+                    clearInterval(intervalo);
+                    document.getElementById('categoria-actual').innerText = "¡TIEMPO!";
+                    barra.style.width = "0%";
+                }
+            }, 1000);
+        }
+
+        function nuevaRonda() {
+            // Resetear textos y timer
+            const catRandom = categorias[Math.floor(Math.random() * categorias.length)];
+            document.getElementById('categoria-actual').innerText = catRandom;
+            
+            // Nuevas letras
+            const cartas = document.querySelectorAll('.carta');
+            cartas.forEach(carta => {
+                carta.innerText = getLetraRandom();
+            });
+
+            iniciarTimer();
+        }
+    </script>
+</body>
+</html>
